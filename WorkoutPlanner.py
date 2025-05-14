@@ -53,11 +53,12 @@ if st.session_state.selected_plan:
 
     # Display Editable Table with Reordering
     df = pd.DataFrame(st.session_state.plans[st.session_state.selected_plan])
-    st.subheader("Workout Plan (Drag and Reorder)")
+    st.subheader("Workout Plan (Manual Reorder)")
     if not df.empty:
+        workout_labels = [f"{i}: {row['day']} – {row['muscle_group']} @ {row['time']}" for i, row in df.iterrows()]
         with st.form("reorder_form"):
-            index_to_move = st.selectbox("Select workout to move (index)", range(len(df)))
-            new_position = st.selectbox("Move to position", range(len(df)))
+            index_to_move = st.selectbox("Select workout to move", options=list(range(len(df))), format_func=lambda i: workout_labels[i])
+            new_position = st.selectbox("Move to position", options=list(range(len(df))))
             submit = st.form_submit_button("Move")
             if submit and index_to_move != new_position:
                 row = st.session_state.plans[st.session_state.selected_plan].pop(index_to_move)
@@ -77,8 +78,13 @@ if st.session_state.selected_plan:
         recovery_data = []
 
         for idx, row in df.iterrows():
-            day_index = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].index(row['day'])
-            mg = row['muscle_group']
+            day_value = row.get('day')
+            try:
+                day_index = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].index(day_value)
+            except (ValueError, TypeError):
+                continue
+
+            mg = row.get('muscle_group', 'Unknown')
 
             if mg not in muscle_days:
                 muscle_days[mg] = []
