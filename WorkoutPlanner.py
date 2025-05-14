@@ -10,6 +10,8 @@ def init_session():
         st.session_state.plans = {}
     if 'selected_plan' not in st.session_state:
         st.session_state.selected_plan = None
+    if 'drag_index' not in st.session_state:
+        st.session_state.drag_index = None
 
 init_session()
 
@@ -49,17 +51,26 @@ if st.session_state.selected_plan:
             "timestamp": datetime.now().isoformat()
         })
 
-    # Display Editable Table
+    # Display Editable Table with Reordering
     df = pd.DataFrame(st.session_state.plans[st.session_state.selected_plan])
-    st.subheader("Workout Plan")
+    st.subheader("Workout Plan (Drag and Reorder)")
     if not df.empty:
-        editable_df = st.data_editor(df, num_rows="dynamic", key="editable")
+        with st.form("reorder_form"):
+            index_to_move = st.selectbox("Select workout to move (index)", range(len(df)))
+            new_position = st.selectbox("Move to position", range(len(df)))
+            submit = st.form_submit_button("Move")
+            if submit and index_to_move != new_position:
+                row = st.session_state.plans[st.session_state.selected_plan].pop(index_to_move)
+                st.session_state.plans[st.session_state.selected_plan].insert(new_position, row)
+
+        editable_df = st.data_editor(pd.DataFrame(st.session_state.plans[st.session_state.selected_plan]), num_rows="dynamic", key="editable")
         st.session_state.plans[st.session_state.selected_plan] = editable_df.to_dict("records")
     else:
         st.info("No workouts added yet.")
 
     # Recovery Visualizer and Usefulness
     st.subheader("Recovery & Usefulness Visualizer")
+    df = pd.DataFrame(st.session_state.plans[st.session_state.selected_plan])
     if not df.empty:
         # Compute recovery index (simple model)
         muscle_days = {}
